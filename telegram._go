@@ -1,0 +1,69 @@
+package main
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/gin-gonic/gin"
+)
+
+var (
+	botToken  = os.Getenv("DRAGONPAY_BOT_TOKEN")
+	publicKey = os.Getenv("DRAGONPAY_PUBLIC_KEY")
+)
+
+var (
+	privateKeys = make(map[int64]string) // telegram id -> private key
+)
+
+type User struct {
+	Id        int64  `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Username  string `json:"username"`
+}
+
+type Payload struct {
+	User User `json:"user"`
+}
+
+func telegramOAuth(c *gin.Context) {
+	hash := c.PostForm("hash")
+	payloadB64 := c.PostForm("payload")
+	payloadBytes, err := base64.StdEncoding.DecodeString(payloadB64)
+	if err != nil {
+		panic("Invalid payload")
+	}
+
+	var payload Payload
+	err = json.Unmarshal(payloadBytes, &payload)
+	if err != nil {
+		panic("Invalid payload")
+	}
+
+	h := hmac.New(sha256.New, []byte(botToken+publicKey))
+	h.Write([]byte(payloadB64))
+	checkHash := hex.EncodeToString(h.Sum(nil))
+
+	if hash != checkHash {
+		panic("Invalid hash")
+	}
+
+	user := payload.User
+	userId := user.Id
+	firstName := user.FirstName
+	lastName := user.LastName
+	username := user.Username
+
+	fmt.Println("userId:", userId)
+	fmt.Println("firstName:", firstName)
+	fmt.Println("lastName:", lastName)
+	fmt.Println("username:", username)
+
+	privateKey :=  
+}
